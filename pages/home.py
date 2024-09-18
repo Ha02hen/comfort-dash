@@ -133,6 +133,7 @@ def update_store_inputs(
 @callback(
     Output(ElementsIDs.MODEL_SELECTION.value, "value"),
     Output(ElementsIDs.INPUT_SECTION.value, "children"),
+    Output(ElementsIDs.chart_selected.value, "value"),
     Input(ElementsIDs.URL.value, "search"),
     State(MyStores.input_data.value, "data"),
     State(ElementsIDs.UNIT_TOGGLE.value, "checked"),
@@ -150,6 +151,11 @@ def update_model_and_inputs(url_search, stored_data, units_selection):
         ElementsIDs.MODEL_SELECTION.value, Models.PMV_ashrae.name
     )
 
+    # Get the chart selected from URL parameters, or use default if not found
+    chart_selected = params.get(
+        ElementsIDs.chart_selected.value, Charts.t_rh.value.name
+    )
+
     units = UnitSystem.IP.value if units_selection else UnitSystem.SI.value
 
     # Convert numeric strings to float
@@ -162,13 +168,14 @@ def update_model_and_inputs(url_search, stored_data, units_selection):
     # Ensure that the unit toggle and model selection are always respected
     params[ElementsIDs.UNIT_TOGGLE.value] = units
     params[ElementsIDs.MODEL_SELECTION.value] = selected_model
+    params[ElementsIDs.chart_selected.value] = chart_selected
 
     # Update the input section
     input_section = input_environmental_personal(
         selected_model, units, url_params=params
     )
 
-    return selected_model, input_section
+    return (selected_model, input_section, chart_selected)
 
 
 @callback(
