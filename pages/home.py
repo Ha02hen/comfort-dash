@@ -106,8 +106,8 @@ def update_store_inputs(
     functionality_selection: str,
     selected_model: str,
 ):
-    if form_clicks is None:
-        return no_update, no_update
+    # if form_clicks is None:
+    #     return no_update, no_update
     units = UnitSystem.IP.value if units_selection else UnitSystem.SI.value
     inputs = get_inputs(selected_model, form_content, units)
 
@@ -190,11 +190,12 @@ def update_note_model(selected_model):
 @callback(
     Output(ElementsIDs.charts_dropdown.value, "children"),
     Input(ElementsIDs.MODEL_SELECTION.value, "value"),
+    Input(ElementsIDs.chart_selected.value, "value"),
 )
-def update_note_model(selected_model):
+def update_note_model(selected_model, chart_selected):
     if selected_model is None:
         return no_update
-    return chart_selector(selected_model=selected_model)
+    return chart_selector(selected_model=selected_model, chart_selected=chart_selected)
 
 
 @callback(

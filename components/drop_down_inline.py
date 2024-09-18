@@ -3,6 +3,16 @@ from dash import dcc, html
 
 
 def generate_dropdown_inline(questions_to_display, value=None, clearable=True):
+    value = (
+        value
+        if value is not None
+        else (
+            "Temperature vs. Relative Humidity"
+            if questions_to_display["options"]
+            else None
+        )
+    )
+
     return dbc.Row(
         [
             dbc.Col(
@@ -15,9 +25,7 @@ def generate_dropdown_inline(questions_to_display, value=None, clearable=True):
             dbc.Col(
                 dcc.Dropdown(
                     options=questions_to_display["options"],
-                    value=(
-                        value if value is not None else questions_to_display["default"]
-                    ),
+                    value=value,
                     multi=questions_to_display["multi"],
                     id=questions_to_display["id"],
                     optionHeight=30,

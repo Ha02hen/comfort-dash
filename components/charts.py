@@ -18,15 +18,16 @@ import matplotlib
 matplotlib.use("Agg")
 
 
-def chart_selector(selected_model: str):
+def chart_selector(selected_model: str, chart_selected: str):
     list_charts = deepcopy(Models[selected_model].value.charts)
     list_charts = [chart.name for chart in list_charts]
+
     drop_down_chart_dict = {
         "id": ElementsIDs.chart_selected.value,
         "question": TextHome.chart_selection.value,
         "options": list_charts,
         "multi": False,
-        "default": list_charts[0],
+        "default": chart_selected,
     }
 
     return generate_dropdown_inline(
