@@ -176,11 +176,10 @@ def adaptive_chart(
             showgrid=True,
             gridcolor="lightgray",
             gridwidth=1,
-            ticks="outside",
             ticklen=5,
-            showline=True,
-            linewidth=1.5,
-            linecolor="gray",
+            showline=False,
+            linewidth=1,
+            linecolor="lightgray",
         ),
         yaxis=dict(
             title=(
@@ -193,11 +192,10 @@ def adaptive_chart(
             showgrid=True,
             gridcolor="lightgray",
             gridwidth=1,
-            ticks="outside",
             ticklen=5,
-            showline=True,
-            linewidth=1.5,
-            linecolor="gray",
+            showline=False,
+            linewidth=1,
+            linecolor="lightgray",
         ),
         legend=dict(x=0.8, y=1),
         showlegend=False,
@@ -652,7 +650,25 @@ def t_rh_pmv(
         )
         annotation_x = 90  # x coordinates in IP units
         annotation_y = 86  # Y-coordinate of relative humidity (unchanged)
-
+    # if model == "ashrae" and function_selection == Functionalities.Compare.value:
+    #     hover_mode_setting = False
+    #     show_annotation = False
+    # else:
+    #     hover_mode_setting = "closest"
+    #     show_annotation = True
+    # if show_annotation:
+    #     fig.add_annotation(
+    #         x=annotation_x,  # Dynamically adjust the x position of a comment
+    #         y=annotation_y,  # The y coordinates remain the same
+    #         xref="x",
+    #         yref="y",
+    #         text=annotation_text,
+    #         showarrow=False,
+    #         align="left",
+    #         bgcolor="white",
+    #         bordercolor="rgba(0,0,0,0)",
+    #         font=dict(size=14),
+    #     )
     fig.add_annotation(
         x=annotation_x,  # Dynamically adjust the x position of a comment
         y=annotation_y,  # The y coordinates remain the same
@@ -661,7 +677,7 @@ def t_rh_pmv(
         text=annotation_text,
         showarrow=False,
         align="left",
-        bgcolor="rgba(0,0,0,0)",
+        bgcolor="white",
         bordercolor="rgba(0,0,0,0)",
         font=dict(size=14),
     )
@@ -1651,6 +1667,7 @@ def speed_temp_pmv(
         )
     )
     fig.update_layout(
+        hovermode=False,
         xaxis_title=(
             "Operative Temperature [°C]"
             if units == UnitSystem.SI.value
