@@ -107,20 +107,33 @@ def display_results(inputs: dict):
             style={"width": "100%"},
         )
         temp_unit = "°F" if units == UnitSystem.IP.value else "°C"
-
-        results = [
-            standard_checker,
-            dmc.SimpleGrid(
-                cols=columns,
-                spacing="xs",
-                verticalSpacing="xs",
-                children=[
-                    dmc.Center(dmc.Text(f"PMV: {r_pmv['pmv']:.2f}")),
-                    dmc.Center(dmc.Text(f"PPD: {r_pmv['ppd']:.1f} %")),
-                    dmc.Center(dmc.Text(f"SET: {r_set_tmp:.1f} {temp_unit}")),
-                ],
-            ),
-        ]
+        if selected_model == Models.PMV_ashrae.name:
+            results = [
+                standard_checker,
+                dmc.SimpleGrid(
+                    cols=2,
+                    spacing="xs",
+                    verticalSpacing="xs",
+                    children=[
+                        dmc.Center(dmc.Text(f"PMV: {r_pmv['pmv']:.2f}")),
+                        dmc.Center(dmc.Text(f"PPD: {r_pmv['ppd']:.1f} %")),
+                        dmc.Center(dmc.Text(f"SET: {r_set_tmp:.1f} {temp_unit}")),
+                    ],
+                ),
+            ]
+        elif selected_model == Models.PMV_EN.name:
+            results = [
+                standard_checker,
+                dmc.SimpleGrid(
+                    cols=columns,
+                    spacing="xs",
+                    verticalSpacing="xs",
+                    children=[
+                        dmc.Center(dmc.Text(f"PMV: {r_pmv['pmv']:.2f}")),
+                        dmc.Center(dmc.Text(f"PPD: {r_pmv['ppd']:.1f} %")),
+                    ],
+                ),
+            ]
 
         if selected_model == Models.PMV_ashrae.name:
             comfort_category = mapping(

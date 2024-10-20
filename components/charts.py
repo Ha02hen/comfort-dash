@@ -611,7 +611,7 @@ def t_rh_pmv(
                 x=[t_db_2],
                 y=[rh_2],
                 mode="markers",
-                marker=dict(color="blue", size=8),
+                marker=dict(symbol="star", color="blue", size=8),
                 name="Compare Input",
                 hoverinfo="skip",
             )
@@ -670,7 +670,6 @@ def t_rh_pmv(
             bordercolor="rgba(0,0,0,0)",
             font=dict(size=14),
         )
-
 
     fig.update_layout(
         yaxis=dict(title="Relative Humidity [%]", range=[0, 100], dtick=10),
