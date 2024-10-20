@@ -288,8 +288,6 @@ def update_hover_annotation(hover_data, figure, inputs):
                 figure["layout"]["annotations"][0]["text"] = last_valid_annotation
             return figure
 
-
-
         if chart_selected in [
             Charts.t_rh.value.name,
         ]:
@@ -300,10 +298,10 @@ def update_hover_annotation(hover_data, figure, inputs):
             hr = y_value
             vp = (hr * 101325) / 1000 / (0.62198 + hr / 1000)
             rh = (vp / p_sat(t_db)) * 100
-        else :
+            rh = max(0, min(rh, 100))  # boundary check
+        else:
             return figure
 
-        rh = max(0, min(rh, 100))  # boundary check
 
         # calculations
         psy_results = psy_ta_rh(t_db, rh)
