@@ -651,18 +651,26 @@ def t_rh_pmv(
         annotation_x = 90  # x coordinates in IP units
         annotation_y = 86  # Y-coordinate of relative humidity (unchanged)
 
-    fig.add_annotation(
-        x=annotation_x,  # Dynamically adjust the x position of a comment
-        y=annotation_y,  # The y coordinates remain the same
-        xref="x",
-        yref="y",
-        text=annotation_text,
-        showarrow=False,
-        align="left",
-        bgcolor="white",
-        bordercolor="rgba(0,0,0,0)",
-        font=dict(size=14),
-    )
+    if model == "ashrae" and function_selection == Functionalities.Compare.value:
+        hover_mode_setting = False
+        show_annotation = False
+    else:
+        hover_mode_setting = "closest"
+        show_annotation = True
+    if show_annotation:
+        fig.add_annotation(
+            x=annotation_x,  # Dynamically adjust the x position of a comment
+            y=annotation_y,  # The y coordinates remain the same
+            xref="x",
+            yref="y",
+            text=annotation_text,
+            showarrow=False,
+            align="left",
+            bgcolor="white",
+            bordercolor="rgba(0,0,0,0)",
+            font=dict(size=14),
+        )
+
 
     fig.update_layout(
         yaxis=dict(title="Relative Humidity [%]", range=[0, 100], dtick=10),
@@ -680,7 +688,7 @@ def t_rh_pmv(
         margin=dict(l=10, t=0),
         height=500,
         width=680,
-        hovermode="closest",
+        hovermode=hover_mode_setting,
         hoverdistance=5,
     )
 
