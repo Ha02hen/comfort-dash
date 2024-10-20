@@ -141,13 +141,13 @@ def adaptive_chart(
                 hoverinfo="skip",
             )
         )
-
-    x = inputs[ElementsIDs.t_rm_input.value]
-    y = t_o(
-        tdb=inputs[ElementsIDs.t_db_input.value],
-        tr=inputs[ElementsIDs.t_r_input.value],
-        v=inputs[ElementsIDs.v_input.value],
-    )
+    if model != "iso":
+        x = inputs[ElementsIDs.t_rm_input.value]
+        y = t_o(
+            tdb=inputs[ElementsIDs.t_db_input.value],
+            tr=inputs[ElementsIDs.t_r_input.value],
+            v=inputs[ElementsIDs.v_input.value],
+        )
     red_point = [x, y]
     traces.append(
         go.Scatter(
