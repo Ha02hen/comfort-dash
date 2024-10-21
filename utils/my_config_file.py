@@ -78,8 +78,8 @@ class Functionalities(Enum):
 
 
 class CompareInputColor(Enum):
-    InputColor1: str = "#ff0000"
-    InputColor2: str = "#0000ff"
+    InputColor1: str = "#000000"
+    InputColor2: str = "#808080"
 
 
 class URLS(Enum):

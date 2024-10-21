@@ -611,7 +611,7 @@ def t_rh_pmv(
                 x=[t_db_2],
                 y=[rh_2],
                 mode="markers",
-                marker=dict(symbol="star", color="blue", size=8),
+                marker=dict(symbol="cross", color="blue", size=8),
                 name="Compare Input",
                 hoverinfo="skip",
             )
