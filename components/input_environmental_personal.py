@@ -352,7 +352,7 @@ def input_environmental_personal(
         if input_id == ElementsIDs.t_db_input.value and is_operative_temperature:
             values.name = "Operative Temperature"
         elif input_id == ElementsIDs.t_db_input.value and not is_operative_temperature:
-            values.name = "Air Temperature" 
+            values.name = "Air Temperature"
         if input_id in all_inputs:
             if input_id == ElementsIDs.t_r_input.value and not include_tr:
                 continue

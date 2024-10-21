@@ -302,7 +302,6 @@ def update_hover_annotation(hover_data, figure, inputs):
         else:
             return figure
 
-
         # calculations
         psy_results = psy_ta_rh(t_db, rh)
         t_wb_value = psy_results.t_wb
