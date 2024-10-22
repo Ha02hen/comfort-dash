@@ -9,6 +9,7 @@ from components.charts import (
     SET_outputs_chart,
     adaptive_chart,
     psy_pmv,
+    speed_temp_pmv,
 )
 from components.dropdowns import (
     model_selection,
@@ -143,12 +144,40 @@ def update_store_inputs(
     Input(ElementsIDs.MODEL_SELECTION.value, "value"),
     Input(ElementsIDs.UNIT_TOGGLE.value, "checked"),
     Input(ElementsIDs.functionality_selection.value, "value"),
+    Input(ElementsIDs.chart_selected.value, "value"),
 )
-def update_inputs(selected_model, units_selection, function_selection):
+def update_inputs(selected_model, units_selection, function_selection, chart_selected):
     if selected_model is None:
         return no_update
     units = UnitSystem.IP.value if units_selection else UnitSystem.SI.value
-    return (input_environmental_personal(selected_model, units, function_selection),)
+    if chart_selected == Charts.wind_temp_chart.value.name:
+        return input_environmental_personal(
+            selected_model,
+            units,
+            function_selection,
+            include_tr=False,
+            is_operative_temperature=True,
+        )
+    elif chart_selected in [
+        Charts.set_outputs.value.name,
+        Charts.thl_psychrometric.value.name,
+    ]:
+        return input_environmental_personal(
+            selected_model,
+            units,
+            function_selection,
+            include_tr=True,
+            include_air_temp=False,
+        )
+    else:
+        return input_environmental_personal(
+            selected_model,
+            units,
+            function_selection,
+            include_tr=True,
+            include_air_temp=True,
+            is_operative_temperature=False,
+        )
 
 
 # once function: update_inputs via URL, update the value of the model dropdown, unit toggle and functionality dropdown and chart dropdown, and inputs, it only use once when the page is loaded
@@ -269,8 +298,9 @@ def update_hover_annotation(hover_data, figure, inputs):
             hr = y_value
             vp = (hr * 101325) / 1000 / (0.62198 + hr / 1000)
             rh = (vp / p_sat(t_db)) * 100
-
-        rh = max(0, min(rh, 100))  # boundary check
+            rh = max(0, min(rh, 100))  # boundary check
+        else:
+            return figure
 
         # calculations
         psy_results = psy_ta_rh(t_db, rh)
@@ -372,6 +402,12 @@ def update_chart(inputs: dict, function_selection: str):
                 inputs=inputs,
                 units=units,
             )
+    elif chart_selected == Charts.wind_temp_chart.value.name:
+        if (
+            selected_model == Models.PMV_ashrae.name
+            and function_selection == Functionalities.Default.value
+        ):
+            image = speed_temp_pmv(inputs=inputs, model="ashrae", units=units)
 
     elif chart_selected == Charts.adaptive_en.value.name:
         if function_selection == Functionalities.Default.value:
