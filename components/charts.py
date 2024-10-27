@@ -1673,7 +1673,7 @@ def speed_temp_pmv(
         height=500,
         width=680,
         xaxis=dict(
-            range=[20, 34] if units == UnitSystem.SI.value else [68, 94],  # x range
+            range=[20, 34] if units == UnitSystem.SI.value else [68, 93.2],  # x range
             tickmode="linear",
             tick0=20 if units == UnitSystem.SI.value else 65,
             dtick=2 if units == UnitSystem.SI.value else 2,
