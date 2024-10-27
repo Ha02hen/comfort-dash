@@ -3,6 +3,8 @@ from pythermalcomfort.models import pmv_ppd, adaptive_ashrae
 from pythermalcomfort.utilities import v_relative, clo_dynamic, mapping
 from pythermalcomfort.models import adaptive_en, set_tmp, pmv_ppd, cooling_effect
 from pythermalcomfort.psychrometrics import t_o
+from dataclasses import dataclass
+from typing import List
 
 from utils.get_inputs import get_inputs
 from utils.my_config_file import (
@@ -421,7 +423,7 @@ def display_results(inputs: dict):
             )
 
     elif selected_model == Models.Adaptive_EN.name:
-        results = gain_adaptive_en_hover_text(
+        results = gain_adaptive_hover_text(
             tdb=inputs[ElementsIDs.t_db_input.value],
             tr=inputs[ElementsIDs.t_r_input.value],
             trm=inputs[ElementsIDs.t_rm_input.value],
@@ -430,7 +432,7 @@ def display_results(inputs: dict):
         )
 
     elif selected_model == Models.Adaptive_ASHRAE.name:
-        results = gain_adaptive_ashare_hover_text(
+        results = gain_adaptive_hover_text(
             tdb=inputs[ElementsIDs.t_db_input.value],
             tr=inputs[ElementsIDs.t_r_input.value],
             trm=inputs[ElementsIDs.t_rm_input.value],
@@ -453,158 +455,76 @@ def display_results(inputs: dict):
     )
 
 
-def gain_adaptive_en_hover_text(tdb, tr, trm, v, units):
-    if tdb is None or tr is None or trm is None or v is None:
-        return "None"
+@dataclass
+class ComfortRange:
+    low: float
+    up: float
+    label: str
 
-    result = adaptive_en(tdb=tdb, tr=tr, t_running_mean=trm, v=v, units=units)
+
+def gain_adaptive_hover_text(
+    tdb: float, tr: float, trm: float, v: float, units: str, model: Models
+) -> List:
     y = t_o(tdb=tdb, tr=tr, v=v)
-    if y > result["tmp_cmf_cat_iii_up"] or y < result["tmp_cmf_cat_iii_low"]:
-        compliance_text = "✘ Does not comply with EN 16798"
-        compliance_color = "red"
-    else:
-        compliance_text = "✔ Complies with EN 16798"
-        compliance_color = "green"
-
-    if result["tmp_cmf_cat_i_low"] <= y <= result["tmp_cmf_cat_i_up"]:
-        class3_bool = ComfortLevel.COMFORTABLE
-        class2_bool = ComfortLevel.COMFORTABLE
-        class1_bool = ComfortLevel.COMFORTABLE
-    elif result["tmp_cmf_cat_i_up"] < y <= result["tmp_cmf_cat_ii_up"]:
-        class3_bool = ComfortLevel.COMFORTABLE
-        class2_bool = ComfortLevel.COMFORTABLE
-        class1_bool = ComfortLevel.TOO_WARM
-    elif result["tmp_cmf_cat_ii_up"] < y <= result["tmp_cmf_cat_iii_up"]:
-        class3_bool = ComfortLevel.COMFORTABLE
-        class2_bool = ComfortLevel.TOO_WARM
-        class1_bool = ComfortLevel.TOO_WARM
-    elif result["tmp_cmf_cat_iii_up"] < y:
-        class3_bool = ComfortLevel.TOO_WARM
-        class2_bool = ComfortLevel.TOO_WARM
-        class1_bool = ComfortLevel.TOO_WARM
-    elif result["tmp_cmf_cat_i_low"] > y >= result["tmp_cmf_cat_ii_low"]:
-        class3_bool = ComfortLevel.COMFORTABLE
-        class2_bool = ComfortLevel.COMFORTABLE
-        class1_bool = ComfortLevel.TOO_COOL
-    elif result["tmp_cmf_cat_ii_low"] > y >= result["tmp_cmf_cat_iii_low"]:
-        class3_bool = ComfortLevel.COMFORTABLE
-        class2_bool = ComfortLevel.TOO_COOL
-        class1_bool = ComfortLevel.TOO_COOL
-    elif result["tmp_cmf_cat_iii_low"] > y:
-        class3_bool = ComfortLevel.TOO_COOL
-        class2_bool = ComfortLevel.TOO_COOL
-        class1_bool = ComfortLevel.TOO_COOL
-    else:
-        class3_bool = ComfortLevel.COMFORTABLE
-        class2_bool = ComfortLevel.COMFORTABLE
-        class1_bool = ComfortLevel.COMFORTABLE
-
-    results = []
     temp_unit = "°F" if units == UnitSystem.IP.value else "°C"
-    results.append(
+
+    if model == Models.Adaptive_EN:
+        result = adaptive_en(tdb=tdb, tr=tr, t_running_mean=trm, v=v, units=units)
+        ranges = [
+            ComfortRange(
+                result["tmp_cmf_cat_iii_low"], result["tmp_cmf_cat_iii_up"], "Class III"
+            ),
+            ComfortRange(
+                result["tmp_cmf_cat_ii_low"], result["tmp_cmf_cat_ii_up"], "Class II"
+            ),
+            ComfortRange(
+                result["tmp_cmf_cat_i_low"], result["tmp_cmf_cat_i_up"], "Class I"
+            ),
+        ]
+        standard_text = "EN 16798"
+    elif model == Models.Adaptive_ASHRAE:
+        result = adaptive_ashrae(tdb=tdb, tr=tr, t_running_mean=trm, v=v, units=units)
+        ranges = [
+            ComfortRange(result["tmp_cmf_80_low"], result["tmp_cmf_80_up"], "80%"),
+            ComfortRange(result["tmp_cmf_90_low"], result["tmp_cmf_90_up"], "90%"),
+        ]
+        standard_text = "ASHRAE 55"
+    else:
+        raise ValueError(f"Unsupported model: {model}")
+
+    main_range = ranges[0]
+    compliant = main_range.low <= y <= main_range.up
+
+    results = [
         dmc.Text(
-            compliance_text,
-            c=compliance_color,
+            f"{'✔' if compliant else '✘'} {'Complies with' if compliant else 'Does not comply with'} {standard_text}",
+            c="green" if compliant else "red",
             ta="center",
             size="md",
             style={"width": "100%"},
         )
-    )
-    results.append(
-        dmc.Center(
-            dmc.Text(
-                f"Class III acceptability limits = Operative temperature: {result['tmp_cmf_cat_iii_low']} to {result['tmp_cmf_cat_iii_up']} {temp_unit}"
-            )
-        )
-    )
-    results.append(
-        dmc.Center(dmc.Text(f"{class3_bool.description}", fz="xs", c=class3_bool.color))
-    )
-    results.append(
-        dmc.Center(
-            dmc.Text(
-                f"Class II acceptability limits = Operative temperature: {result['tmp_cmf_cat_ii_low']} to {result['tmp_cmf_cat_ii_up']} {temp_unit}"
-            )
-        )
-    )
-    results.append(
-        dmc.Center(dmc.Text(f"{class2_bool.description}", fz="xs", c=class2_bool.color))
-    )
-    results.append(
-        dmc.Center(
-            dmc.Text(
-                f"Class I acceptability limits = Operative temperature: {result['tmp_cmf_cat_i_low']} to {result['tmp_cmf_cat_i_up']} {temp_unit}"
-            )
-        )
-    )
-    results.append(
-        dmc.Center(dmc.Text(f"{class1_bool.description}", fz="xs", c=class1_bool.color))
-    )
-    return results
+    ]
 
+    for range_info in ranges:
+        if range_info.low <= y <= range_info.up:
+            comfort_level = ComfortLevel.COMFORTABLE
+        elif y > range_info.up:
+            comfort_level = ComfortLevel.TOO_WARM
+        else:
+            comfort_level = ComfortLevel.TOO_COOL
 
-def gain_adaptive_ashare_hover_text(tdb, tr, trm, v, units):
-    if tdb is None or tr is None or trm is None or v is None:
-        return "None"
-
-    result = adaptive_ashrae(tdb=tdb, tr=tr, t_running_mean=trm, v=v, units=units)
-    y = t_o(tdb=tdb, tr=tr, v=v)
-
-    if y > result["tmp_cmf_80_up"] or y < result["tmp_cmf_80_low"]:
-        compliance_text = "✘ Does not comply with ASHRAE 55"
-        compliance_color = "red"
-    else:
-        compliance_text = "✔ Complies with ASHRAE 55"
-        compliance_color = "green"
-
-    if result["tmp_cmf_90_low"] <= y <= result["tmp_cmf_90_up"]:
-        class2_bool = ComfortLevel.COMFORTABLE
-        class1_bool = ComfortLevel.COMFORTABLE
-    elif result["tmp_cmf_90_up"] < y <= result["tmp_cmf_80_up"]:
-        class2_bool = ComfortLevel.COMFORTABLE
-        class1_bool = ComfortLevel.TOO_WARM
-    elif result["tmp_cmf_90_up"] < y:
-        class2_bool = ComfortLevel.TOO_WARM
-        class1_bool = ComfortLevel.TOO_WARM
-    elif result["tmp_cmf_90_low"] > y >= result["tmp_cmf_80_low"]:
-        class2_bool = ComfortLevel.COMFORTABLE
-        class1_bool = ComfortLevel.TOO_COOL
-    elif result["tmp_cmf_80_low"] > y:
-        class2_bool = ComfortLevel.TOO_COOL
-        class1_bool = ComfortLevel.TOO_COOL
-    else:
-        class2_bool = ComfortLevel.COMFORTABLE
-        class1_bool = ComfortLevel.COMFORTABLE
-
-    results = []
-    temp_unit = "°F" if units == UnitSystem.IP.value else "°C"
-    results.append(
-        dmc.Text(
-            compliance_text,
-            c=compliance_color,
-            ta="center",
-            size="md",
-            style={"width": "100%"},
+        results.extend(
+            [
+                dmc.Center(
+                    dmc.Text(
+                        f"{range_info.label} acceptability limits = Operative temperature: "
+                        f"{range_info.low:.1f} to {range_info.up:.1f} {temp_unit}"
+                    )
+                ),
+                dmc.Center(
+                    dmc.Text(comfort_level.description, fz="xs", c=comfort_level.color)
+                ),
+            ]
         )
-    )
-    results.append(
-        dmc.Center(
-            dmc.Text(
-                f"80% acceptability limits = Operative temperature: {round(result.tmp_cmf_80_low,1)} to {round(result.tmp_cmf_80_up,1)} {temp_unit}"
-            )
-        )
-    )
-    results.append(
-        dmc.Center(dmc.Text(f"{class2_bool.description}", fz="xs", c=class2_bool.color))
-    )
-    results.append(
-        dmc.Center(
-            dmc.Text(
-                f"90% acceptability limits = Operative temperature: {round(result.tmp_cmf_90_low,1)} to {round(result.tmp_cmf_90_up,1)} {temp_unit}"
-            )
-        )
-    )
-    results.append(
-        dmc.Center(dmc.Text(f"{class1_bool.description}", fz="xs", c=class1_bool.color))
-    )
+
     return results
