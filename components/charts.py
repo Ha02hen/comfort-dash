@@ -83,9 +83,9 @@ def adaptive_chart(
     traces = []
 
     if units == UnitSystem.IP.value:
-        x_values = np.array([50, 92.3]) if model == "iso" else np.array([50, 92.3])
+        x_values = np.array([50, 92.3])
     else:
-        x_values = np.array([10, 30]) if model == "iso" else np.array([10, 33.5])
+        x_values = np.array([10, 33.5])
 
     if model == "iso":
         adaptive_func = adaptive_en
@@ -170,7 +170,7 @@ def adaptive_chart(
                 if units == UnitSystem.SI.value
                 else "Prevailing Mean Outdoor Temperature [°F]"
             ),
-            range=[10, 30] if model == "iso" else [10, 33.5],
+            range=[10, 33.5],
             dtick=2 if units == UnitSystem.SI.value else 5,
             showgrid=True,
             gridcolor="lightgray",
@@ -186,7 +186,7 @@ def adaptive_chart(
                 if units == UnitSystem.SI.value
                 else "Operative Temperature [°F]"
             ),
-            range=[14, 36] if units == UnitSystem.SI.value else [60, 104],
+            range=[14, 36] if units == UnitSystem.SI.value else [57.2, 97.6],
             dtick=2 if units == UnitSystem.SI.value else 5,
             showgrid=True,
             gridcolor="lightgray",
@@ -678,7 +678,7 @@ def t_rh_pmv(
                 if units == UnitSystem.SI.value
                 else "Dry-bulb Temperature [°F]"
             ),
-            range=[10, 36] if units == UnitSystem.SI.value else [50, 100],
+            range=[10, 36] if units == UnitSystem.SI.value else [50, 96.8],
             dtick=2 if units == UnitSystem.SI.value else 5,
         ),
         showlegend=False,
