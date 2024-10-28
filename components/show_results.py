@@ -429,6 +429,7 @@ def display_results(inputs: dict):
             trm=inputs[ElementsIDs.t_rm_input.value],
             v=inputs[ElementsIDs.v_input.value],
             units=units,
+            model=Models.Adaptive_EN,
         )
 
     elif selected_model == Models.Adaptive_ASHRAE.name:
@@ -438,6 +439,7 @@ def display_results(inputs: dict):
             trm=inputs[ElementsIDs.t_rm_input.value],
             v=inputs[ElementsIDs.v_input.value],
             units=units,
+            model=Models.Adaptive_ASHRAE,
         )
 
     if selected_model == Models.PMV_ashrae.name:
