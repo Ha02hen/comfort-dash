@@ -630,8 +630,20 @@ def t_rh_pmv(
             f"t<sub>dp</sub>: {psy_results.t_dp:.1f} °C<br>"
             f"h: {psy_results.h / 1000:.1f} kJ/kg"
         )
+
         annotation_x = 32  # x coordinates in SI units
         annotation_y = 86  # Y-coordinate of relative humidity
+        if function_selection == Functionalities.Default.value:
+            fig.add_shape(
+                type="rect",
+                x0=29.5,
+                x1=34.2,
+                y0=72,
+                y1=99,
+                fillcolor="rgba(255, 255, 255, 0.6)",
+                line_color="rgba(0, 0, 0, 0)",
+                layer="above",
+            )
     elif units == UnitSystem.IP.value:
         t_db = (t_db - 32) / 1.8
         psy_results = psy_ta_rh(t_db, rh)
@@ -647,8 +659,20 @@ def t_rh_pmv(
             f"t<sub>dp</sub>: {t_dp_value:.1f} °F<br>"
             f"h: {h:.1f} btu/lb<br>"  # kJ/kg to btu/lb
         )
+
         annotation_x = 90  # x coordinates in IP units
         annotation_y = 86  # Y-coordinate of relative humidity (unchanged)
+        if function_selection == Functionalities.Default.value:
+            fig.add_shape(
+                type="rect",
+                x0=84.9,
+                x1=95.1,
+                y0=72,
+                y1=99,
+                fillcolor="rgba(255, 255, 255, 0.6)",
+                line_color="rgba(0, 0, 0, 0)",
+                layer="above",
+            )
 
     if model == "ashrae" and function_selection == Functionalities.Compare.value:
         hover_mode_setting = False
@@ -665,7 +689,7 @@ def t_rh_pmv(
             text=annotation_text,
             showarrow=False,
             align="left",
-            bgcolor="white",
+            bgcolor="rgba(0,0,0,0)",
             bordercolor="rgba(0,0,0,0)",
             font=dict(size=14),
         )
