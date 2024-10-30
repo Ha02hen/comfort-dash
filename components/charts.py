@@ -1281,9 +1281,6 @@ def psy_pmv(
                 tdb2 = round(float(units_converter(tdb=t_db_2)[0]), 1)
                 tr_2 = round(float(units_converter(tr=tr_2)[0]), 1)
                 vr_2 = round(float(units_converter(vr=vr_2)[0]), 1)
-                print(f"tdb2 value: {tdb2}, type: {type(tdb2)}")
-                print(f"tr_2 value: {tr_2}, type: {type(tr_2)}")
-                print(f"vr_2 value: {vr_2}, type: {type(vr_2)}")
 
             else:
                 tdb2 = t_db_2
