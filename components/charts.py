@@ -1348,7 +1348,7 @@ def psy_pmv(
                     mode="lines",
                     line=dict(color="rgba(0,0,0,0)"),
                     fill="toself",
-                    fillcolor="rgba(70, 130, 180, 0.8)",
+                    fillcolor="rgba(0, 51, 51, 0.8)",
                     showlegend=False,
                     hoverinfo="skip",
                 )
@@ -1375,10 +1375,7 @@ def psy_pmv(
                     x=[t_db_2],
                     y=[hr_2],
                     mode="markers",
-                    marker=dict(
-                        color="green",
-                        size=10,
-                    ),
+                    marker=dict(color="green", size=10, symbol="cross"),
                     showlegend=False,
                 )
             )
