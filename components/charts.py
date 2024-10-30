@@ -1115,9 +1115,15 @@ def find_tdb_for_pmv(
     max_iter=100,
 ):
     if units == UnitSystem.SI.value:
-        low, high = 10, 40
+        if clo >= 1.5:
+            low, high = 5, 50  # When clo >= 1.5, expand the search range
+        else:
+            low, high = 10, 40
     else:
-        low, high = 50, 96.8
+        if clo >= 1.5:
+            low, high = 41, 122  # Expand the search range when using Fahrenheit units
+        else:
+            low, high = 50, 96.8
     iterations = 0
 
     while iterations < max_iter:
@@ -1348,7 +1354,7 @@ def psy_pmv(
                     mode="lines",
                     line=dict(color="rgba(0,0,0,0)"),
                     fill="toself",
-                    fillcolor="rgba(0, 51, 51, 0.8)",
+                    fillcolor="rgba(30,70,100,0.5)",
                     showlegend=False,
                     hoverinfo="skip",
                 )
@@ -1375,7 +1381,7 @@ def psy_pmv(
                     x=[t_db_2],
                     y=[hr_2],
                     mode="markers",
-                    marker=dict(color="green", size=10, symbol="cross"),
+                    marker=dict(color="blue", size=10, symbol="cross"),
                     showlegend=False,
                 )
             )
@@ -1413,7 +1419,7 @@ def psy_pmv(
                 y=[hr],
                 mode="markers",
                 marker=dict(
-                    color="darkblue",
+                    color="red",
                     size=10,
                 ),
                 showlegend=False,
