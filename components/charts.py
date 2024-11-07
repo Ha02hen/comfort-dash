@@ -630,8 +630,20 @@ def t_rh_pmv(
             f"t<sub>dp</sub>: {psy_results.t_dp:.1f} °C<br>"
             f"h: {psy_results.h / 1000:.1f} kJ/kg"
         )
+
         annotation_x = 32  # x coordinates in SI units
         annotation_y = 86  # Y-coordinate of relative humidity
+        if function_selection == Functionalities.Default.value:
+            fig.add_shape(
+                type="rect",
+                x0=29.5,
+                x1=34.2,
+                y0=72,
+                y1=99,
+                fillcolor="rgba(255, 255, 255, 0.6)",
+                line_color="rgba(0, 0, 0, 0)",
+                layer="above",
+            )
     elif units == UnitSystem.IP.value:
         t_db = (t_db - 32) / 1.8
         psy_results = psy_ta_rh(t_db, rh)
@@ -647,8 +659,20 @@ def t_rh_pmv(
             f"t<sub>dp</sub>: {t_dp_value:.1f} °F<br>"
             f"h: {h:.1f} btu/lb<br>"  # kJ/kg to btu/lb
         )
+
         annotation_x = 90  # x coordinates in IP units
         annotation_y = 86  # Y-coordinate of relative humidity (unchanged)
+        if function_selection == Functionalities.Default.value:
+            fig.add_shape(
+                type="rect",
+                x0=84.9,
+                x1=95.1,
+                y0=72,
+                y1=99,
+                fillcolor="rgba(255, 255, 255, 0.6)",
+                line_color="rgba(0, 0, 0, 0)",
+                layer="above",
+            )
 
     if model == "ashrae" and function_selection == Functionalities.Compare.value:
         hover_mode_setting = False
@@ -665,7 +689,7 @@ def t_rh_pmv(
             text=annotation_text,
             showarrow=False,
             align="left",
-            bgcolor="white",
+            bgcolor="rgba(0,0,0,0)",
             bordercolor="rgba(0,0,0,0)",
             font=dict(size=14),
         )
@@ -818,7 +842,6 @@ def SET_outputs_chart(
         t_op = (h_r * tr + h_cc * tdb) / h_t
 
         while n_simulation < length_time_simulation:
-
             n_simulation += 1
 
             iteration_limit = 150  # for following while loop
@@ -1115,11 +1138,16 @@ def find_tdb_for_pmv(
     tol=1e-2,
     max_iter=100,
 ):
-
     if units == UnitSystem.SI.value:
-        low, high = 10, 40
+        if clo >= 1.5:
+            low, high = 5, 50  # When clo >= 1.5, expand the search range
+        else:
+            low, high = 10, 40
     else:
-        low, high = 50, 96.8
+        if clo >= 1.5:
+            low, high = 41, 122  # Expand the search range when using Fahrenheit units
+        else:
+            low, high = 50, 96.8
     iterations = 0
 
     while iterations < max_iter:
@@ -1166,9 +1194,9 @@ def curve_fit(x, y, num_points=50):
 def psy_pmv(
     inputs: dict = None,
     model: str = "ASHRAE",
+    function_selection=Functionalities.Default.value,
     units: str = "SI",
 ):
-
     p_tdb = float(inputs[ElementsIDs.t_db_input.value])
     tr = float(inputs[ElementsIDs.t_r_input.value])
     vr = float(
@@ -1196,10 +1224,11 @@ def psy_pmv(
 
     # if model is PMV-ASHRAE plot blue area, else plot green areas
     rh_values = np.arange(0, 110, 10)
-    if model == "ASHRAE":
-        pmv_targets = [-0.5, 0.5]
-    else:
+    if model == "ISO" and function_selection == Functionalities.Default.value:
         pmv_targets = [-0.7, -0.5, -0.2, 0.2, 0.5, 0.7]
+    else:
+        pmv_targets = [-0.5, 0.5]
+
     tdb_array = np.zeros((len(pmv_targets), len(rh_values)))
 
     for j, pmv_target in enumerate(pmv_targets):
@@ -1215,10 +1244,11 @@ def psy_pmv(
             )
             tdb_array[j, i] = tdb_solution
 
-    # calculate hr
-    lower_rh_list = np.arange(0, 110, 10)
-    upper_rh_list = np.arange(100, -1, -10)
-    if model == "ASHRAE":
+    if function_selection == Functionalities.Compare.value:
+        # calculate hr
+        lower_rh_list = np.arange(0, 110, 10)
+        upper_rh_list = np.arange(100, -1, -10)
+
         lower_tdb = tdb_array[0]
         upper_tdb = tdb_array[1][::-1]
         lower_hr = []
@@ -1256,6 +1286,127 @@ def psy_pmv(
         lower_upper_tdb = np.concatenate([new_lower_tdb, new_upper_tdb[::-1]])
         lower_upper_hr = np.concatenate([new_lower_hr, new_upper_hr[::-1]])
 
+        # darkblue area
+        if model == "ashrae":
+            met_2, clo_2, tr_2, t_db_2, v_2, rh_2 = compare_get_inputs(inputs)
+
+            vr_2 = float(v_relative(v=v_2, met=met_2))  # Ensure vr is scalar
+            rh_2 = float(rh_2)
+            met_2 = float(met_2)
+            clo_2 = float(
+                clo_dynamic(  # Ensure clo is scalar
+                    clo=clo_2,
+                    met=met_2,
+                )
+            )
+
+            # save original values for plotting
+            if units == UnitSystem.IP.value:
+                tdb2 = round(float(units_converter(tdb=t_db_2)[0]), 1)
+                tr_2 = round(float(units_converter(tr=tr_2)[0]), 1)
+                vr_2 = round(float(units_converter(vr=vr_2)[0]), 1)
+
+            else:
+                tdb2 = t_db_2
+
+            traces = []
+
+            # if model is PMV-ASHRAE plot blue area, else plot green areas
+            rh_values = np.arange(0, 110, 10)
+
+            pmv_targets = [-0.5, 0.5]
+
+            tdb_array_2 = np.zeros((len(pmv_targets), len(rh_values)))
+
+            for j, pmv_target in enumerate(pmv_targets):
+                for i, rh_value in enumerate(rh_values):
+                    tdb_solution_2 = find_tdb_for_pmv(
+                        target_pmv=pmv_target,
+                        tr=tr_2,
+                        vr=vr_2,
+                        rh=rh_value,
+                        met=met_2,
+                        clo=clo_2,
+                        standard=model,
+                    )
+                    tdb_array_2[j, i] = tdb_solution_2
+
+            # calculate hr
+            lower_rh_list_2 = np.arange(0, 110, 10)
+            upper_rh_list_2 = np.arange(100, -1, -10)
+
+            lower_tdb_2 = tdb_array_2[0]
+            upper_tdb_2 = tdb_array_2[1][::-1]
+            lower_hr_2 = []
+            upper_hr_2 = []
+            for i in range(len(lower_rh_list_2)):
+                lower_hr_2.append(
+                    psy_ta_rh(tdb=lower_tdb_2[i], rh=lower_rh_list_2[i])["hr"] * 1000
+                )
+            for i in range(len(upper_rh_list_2)):
+                upper_hr_2.append(
+                    psy_ta_rh(tdb=upper_tdb_2[i], rh=upper_rh_list_2[i])["hr"] * 1000
+                )
+            if units == UnitSystem.IP.value:
+                lower_tdb_2 = list(
+                    map(
+                        lambda x: round(
+                            float(units_converter(tmp=x, from_units="si")[0]), 1
+                        ),
+                        lower_tdb_2,
+                    )
+                )
+                upper_tdb_2 = list(
+                    map(
+                        lambda x: round(
+                            float(units_converter(tmp=x, from_units="si")[0]), 1
+                        ),
+                        upper_tdb_2,
+                    )
+                )
+            new_lower_tdb_2, new_lower_hr_2 = curve_fit(lower_tdb_2, lower_hr_2)
+            new_upper_tdb_2, new_upper_hr_2 = curve_fit(upper_tdb_2, upper_hr_2)
+            lower_upper_tdb_2 = np.concatenate([new_lower_tdb_2, new_upper_tdb_2[::-1]])
+            lower_upper_hr_2 = np.concatenate([new_lower_hr_2, new_upper_hr_2[::-1]])
+            traces.append(
+                go.Scatter(
+                    x=lower_upper_tdb_2,
+                    y=lower_upper_hr_2,
+                    mode="lines",
+                    line=dict(color="rgba(0,0,0,0)"),
+                    fill="toself",
+                    fillcolor="rgba(30,70,100,0.5)",
+                    showlegend=False,
+                    hoverinfo="skip",
+                )
+            )
+
+            psy_results = psy_ta_rh(tdb2, rh_2)
+            hr_2 = round(float(psy_results["hr"]) * 1000, 1)
+            t_wb_2 = round(float(psy_results["t_wb"]), 1)
+            t_dp_2 = round(float(psy_results["t_dp"]), 1)
+            h_2 = round(float(psy_results["h"]) / 1000, 1)
+
+            if units == UnitSystem.IP.value:
+                t_wb_2 = round(
+                    float(units_converter(tmp=t_wb_2, from_units="si")[0]), 1
+                )
+                t_dp_2 = round(
+                    float(units_converter(tmp=t_dp_2, from_units="si")[0]), 1
+                )
+                h_2 = round(float(h_2 / 2.326), 1)  # kJ/kg => btu/lb
+                tdb2 = t_db_2
+
+            traces.append(
+                go.Scatter(
+                    x=[t_db_2],
+                    y=[hr_2],
+                    mode="markers",
+                    marker=dict(color="blue", size=10, symbol="cross"),
+                    showlegend=False,
+                )
+            )
+
         traces.append(
             go.Scatter(
                 x=lower_upper_tdb,
@@ -1263,179 +1414,265 @@ def psy_pmv(
                 mode="lines",
                 line=dict(color="rgba(0,0,0,0)"),
                 fill="toself",
-                fillcolor="rgba(59, 189, 237, 0.7)",
+                fillcolor="rgba(59, 189, 237, 0.6)",
                 showlegend=False,
                 hoverinfo="skip",
             )
         )
-    else:
-        iii_lower_tdb = tdb_array[0]
-        iii_upper_tdb = tdb_array[5][::-1]
-        ii_lower_tdb = tdb_array[1]
-        ii_upper_tdb = tdb_array[4][::-1]
-        i_lower_tdb = tdb_array[2]
-        i_upper_tdb = tdb_array[3][::-1]
-        iii_lower_hr = []
-        iii_upper_hr = []
-        ii_lower_hr = []
-        ii_upper_hr = []
-        i_lower_hr = []
-        i_upper_hr = []
+        # current point
+        # Red point
 
-        for i in range(len(lower_rh_list)):
-            iii_lower_hr.append(
-                psy_ta_rh(tdb=iii_lower_tdb[i], rh=lower_rh_list[i])["hr"] * 1000
-            )
-            ii_lower_hr.append(
-                psy_ta_rh(tdb=ii_lower_tdb[i], rh=lower_rh_list[i])["hr"] * 1000
-            )
-            i_lower_hr.append(
-                psy_ta_rh(tdb=i_lower_tdb[i], rh=lower_rh_list[i])["hr"] * 1000
-            )
-        for i in range(len(upper_rh_list)):
-            iii_upper_hr.append(
-                psy_ta_rh(tdb=iii_upper_tdb[i], rh=upper_rh_list[i])["hr"] * 1000
-            )
-            ii_upper_hr.append(
-                psy_ta_rh(tdb=ii_upper_tdb[i], rh=upper_rh_list[i])["hr"] * 1000
-            )
-            i_upper_hr.append(
-                psy_ta_rh(tdb=i_upper_tdb[i], rh=upper_rh_list[i])["hr"] * 1000
-            )
+        psy_results = psy_ta_rh(tdb, p_rh)
+        hr = round(float(psy_results["hr"]) * 1000, 1)
+        t_wb = round(float(psy_results["t_wb"]), 1)
+        t_dp = round(float(psy_results["t_dp"]), 1)
+        h = round(float(psy_results["h"]) / 1000, 1)
 
         if units == UnitSystem.IP.value:
-            iii_lower_tdb = list(
-                map(
-                    lambda x: round(
-                        float(units_converter(tmp=x, from_units="si")[0]), 1
-                    ),
-                    iii_lower_tdb,
-                )
-            )
-            iii_upper_tdb = list(
-                map(
-                    lambda x: round(
-                        float(units_converter(tmp=x, from_units="si")[0]), 1
-                    ),
-                    iii_upper_tdb,
-                )
-            )
-            ii_lower_tdb = list(
-                map(
-                    lambda x: round(
-                        float(units_converter(tmp=x, from_units="si")[0]), 1
-                    ),
-                    ii_lower_tdb,
-                )
-            )
-            ii_upper_tdb = list(
-                map(
-                    lambda x: round(
-                        float(units_converter(tmp=x, from_units="si")[0]), 1
-                    ),
-                    ii_upper_tdb,
-                )
-            )
-            i_lower_tdb = list(
-                map(
-                    lambda x: round(
-                        float(units_converter(tmp=x, from_units="si")[0]), 1
-                    ),
-                    i_lower_tdb,
-                )
-            )
-            i_upper_tdb = list(
-                map(
-                    lambda x: round(
-                        float(units_converter(tmp=x, from_units="si")[0]), 1
-                    ),
-                    i_upper_tdb,
-                )
-            )
+            t_wb = round(float(units_converter(tmp=t_wb, from_units="si")[0]), 1)
+            t_dp = round(float(units_converter(tmp=t_dp, from_units="si")[0]), 1)
+            h = round(float(h / 2.326), 1)  # kJ/kg => btu/lb
+            tdb = p_tdb
 
-        new_iii_lower_tdb, new_iii_lower_hr = curve_fit(iii_lower_tdb, iii_lower_hr)
-        new_ii_lower_tdb, new_ii_lower_hr = curve_fit(ii_lower_tdb, ii_lower_hr)
-        new_i_lower_tdb, new_i_lower_hr = curve_fit(i_lower_tdb, i_lower_hr)
-        new_iii_upper_tdb, new_iii_upper_hr = curve_fit(iii_upper_tdb, iii_upper_hr)
-        new_ii_upper_tdb, new_ii_upper_hr = curve_fit(ii_upper_tdb, ii_upper_hr)
-        new_i_upper_tdb, new_i_upper_hr = curve_fit(i_upper_tdb, i_upper_hr)
-
-        iii_lower_upper_tdb = np.concatenate(
-            [new_iii_lower_tdb, new_iii_upper_tdb[::-1]]
-        )
-        ii_lower_upper_tdb = np.concatenate([new_ii_lower_tdb, new_ii_upper_tdb[::-1]])
-        i_lower_upper_tdb = np.concatenate([new_i_lower_tdb, new_i_upper_tdb[::-1]])
-        iii_lower_upper_hr = np.concatenate([new_iii_lower_hr, new_iii_upper_hr[::-1]])
-        ii_lower_upper_hr = np.concatenate([new_ii_lower_hr, new_ii_upper_hr[::-1]])
-        i_lower_upper_hr = np.concatenate([new_i_lower_hr, new_i_upper_hr[::-1]])
-
-        # category III
         traces.append(
             go.Scatter(
-                x=iii_lower_upper_tdb,
-                y=iii_lower_upper_hr,
-                mode="lines",
-                line=dict(color="rgba(0,0,0,0)"),
-                fill="toself",
-                fillcolor="rgba(28,128,28,0.2)",
+                x=[tdb],
+                y=[hr],
+                mode="markers",
+                marker=dict(
+                    color="red",
+                    size=10,
+                ),
+                showlegend=False,
+            )
+        )
+    if function_selection == Functionalities.Default.value:
+        # calculate hr
+        lower_rh_list = np.arange(0, 110, 10)
+        upper_rh_list = np.arange(100, -1, -10)
+        if model == "ASHRAE":
+            lower_tdb = tdb_array[0]
+            upper_tdb = tdb_array[1][::-1]
+            lower_hr = []
+            upper_hr = []
+            for i in range(len(lower_rh_list)):
+                lower_hr.append(
+                    psy_ta_rh(tdb=lower_tdb[i], rh=lower_rh_list[i])["hr"] * 1000
+                )
+            for i in range(len(upper_rh_list)):
+                upper_hr.append(
+                    psy_ta_rh(tdb=upper_tdb[i], rh=upper_rh_list[i])["hr"] * 1000
+                )
+
+            if units == UnitSystem.IP.value:
+                lower_tdb = list(
+                    map(
+                        lambda x: round(
+                            float(units_converter(tmp=x, from_units="si")[0]), 1
+                        ),
+                        lower_tdb,
+                    )
+                )
+                upper_tdb = list(
+                    map(
+                        lambda x: round(
+                            float(units_converter(tmp=x, from_units="si")[0]), 1
+                        ),
+                        upper_tdb,
+                    )
+                )
+
+            new_lower_tdb, new_lower_hr = curve_fit(lower_tdb, lower_hr)
+            new_upper_tdb, new_upper_hr = curve_fit(upper_tdb, upper_hr)
+
+            lower_upper_tdb = np.concatenate([new_lower_tdb, new_upper_tdb[::-1]])
+            lower_upper_hr = np.concatenate([new_lower_hr, new_upper_hr[::-1]])
+
+            traces.append(
+                go.Scatter(
+                    x=lower_upper_tdb,
+                    y=lower_upper_hr,
+                    mode="lines",
+                    line=dict(color="rgba(0,0,0,0)"),
+                    fill="toself",
+                    fillcolor="rgba(59, 189, 237, 0.7)",
+                    showlegend=False,
+                    hoverinfo="skip",
+                )
+            )
+
+        else:
+            iii_lower_tdb = tdb_array[0]
+            iii_upper_tdb = tdb_array[5][::-1]
+            ii_lower_tdb = tdb_array[1]
+            ii_upper_tdb = tdb_array[4][::-1]
+            i_lower_tdb = tdb_array[2]
+            i_upper_tdb = tdb_array[3][::-1]
+            iii_lower_hr = []
+            iii_upper_hr = []
+            ii_lower_hr = []
+            ii_upper_hr = []
+            i_lower_hr = []
+            i_upper_hr = []
+
+            for i in range(len(lower_rh_list)):
+                iii_lower_hr.append(
+                    psy_ta_rh(tdb=iii_lower_tdb[i], rh=lower_rh_list[i])["hr"] * 1000
+                )
+                ii_lower_hr.append(
+                    psy_ta_rh(tdb=ii_lower_tdb[i], rh=lower_rh_list[i])["hr"] * 1000
+                )
+                i_lower_hr.append(
+                    psy_ta_rh(tdb=i_lower_tdb[i], rh=lower_rh_list[i])["hr"] * 1000
+                )
+            for i in range(len(upper_rh_list)):
+                iii_upper_hr.append(
+                    psy_ta_rh(tdb=iii_upper_tdb[i], rh=upper_rh_list[i])["hr"] * 1000
+                )
+                ii_upper_hr.append(
+                    psy_ta_rh(tdb=ii_upper_tdb[i], rh=upper_rh_list[i])["hr"] * 1000
+                )
+                i_upper_hr.append(
+                    psy_ta_rh(tdb=i_upper_tdb[i], rh=upper_rh_list[i])["hr"] * 1000
+                )
+
+            if units == UnitSystem.IP.value:
+                iii_lower_tdb = list(
+                    map(
+                        lambda x: round(
+                            float(units_converter(tmp=x, from_units="si")[0]), 1
+                        ),
+                        iii_lower_tdb,
+                    )
+                )
+                iii_upper_tdb = list(
+                    map(
+                        lambda x: round(
+                            float(units_converter(tmp=x, from_units="si")[0]), 1
+                        ),
+                        iii_upper_tdb,
+                    )
+                )
+                ii_lower_tdb = list(
+                    map(
+                        lambda x: round(
+                            float(units_converter(tmp=x, from_units="si")[0]), 1
+                        ),
+                        ii_lower_tdb,
+                    )
+                )
+                ii_upper_tdb = list(
+                    map(
+                        lambda x: round(
+                            float(units_converter(tmp=x, from_units="si")[0]), 1
+                        ),
+                        ii_upper_tdb,
+                    )
+                )
+                i_lower_tdb = list(
+                    map(
+                        lambda x: round(
+                            float(units_converter(tmp=x, from_units="si")[0]), 1
+                        ),
+                        i_lower_tdb,
+                    )
+                )
+                i_upper_tdb = list(
+                    map(
+                        lambda x: round(
+                            float(units_converter(tmp=x, from_units="si")[0]), 1
+                        ),
+                        i_upper_tdb,
+                    )
+                )
+
+            new_iii_lower_tdb, new_iii_lower_hr = curve_fit(iii_lower_tdb, iii_lower_hr)
+            new_ii_lower_tdb, new_ii_lower_hr = curve_fit(ii_lower_tdb, ii_lower_hr)
+            new_i_lower_tdb, new_i_lower_hr = curve_fit(i_lower_tdb, i_lower_hr)
+            new_iii_upper_tdb, new_iii_upper_hr = curve_fit(iii_upper_tdb, iii_upper_hr)
+            new_ii_upper_tdb, new_ii_upper_hr = curve_fit(ii_upper_tdb, ii_upper_hr)
+            new_i_upper_tdb, new_i_upper_hr = curve_fit(i_upper_tdb, i_upper_hr)
+
+            iii_lower_upper_tdb = np.concatenate(
+                [new_iii_lower_tdb, new_iii_upper_tdb[::-1]]
+            )
+            ii_lower_upper_tdb = np.concatenate(
+                [new_ii_lower_tdb, new_ii_upper_tdb[::-1]]
+            )
+            i_lower_upper_tdb = np.concatenate([new_i_lower_tdb, new_i_upper_tdb[::-1]])
+            iii_lower_upper_hr = np.concatenate(
+                [new_iii_lower_hr, new_iii_upper_hr[::-1]]
+            )
+            ii_lower_upper_hr = np.concatenate([new_ii_lower_hr, new_ii_upper_hr[::-1]])
+            i_lower_upper_hr = np.concatenate([new_i_lower_hr, new_i_upper_hr[::-1]])
+
+            # category III
+            traces.append(
+                go.Scatter(
+                    x=iii_lower_upper_tdb,
+                    y=iii_lower_upper_hr,
+                    mode="lines",
+                    line=dict(color="rgba(0,0,0,0)"),
+                    fill="toself",
+                    fillcolor="rgba(28,128,28,0.2)",
+                    showlegend=False,
+                    hoverinfo="skip",
+                )
+            )
+            # category II
+            traces.append(
+                go.Scatter(
+                    x=ii_lower_upper_tdb,
+                    y=ii_lower_upper_hr,
+                    mode="lines",
+                    line=dict(color="rgba(0,0,0,0)"),
+                    fill="toself",
+                    fillcolor="rgba(28,128,28,0.3)",
+                    showlegend=False,
+                    hoverinfo="skip",
+                )
+            )
+            # category I
+            traces.append(
+                go.Scatter(
+                    x=i_lower_upper_tdb,
+                    y=i_lower_upper_hr,
+                    mode="lines",
+                    line=dict(color="rgba(0,0,0,0)"),
+                    fill="toself",
+                    fillcolor="rgba(28,128,28,0.4)",
+                    showlegend=False,
+                    hoverinfo="skip",
+                )
+            )
+
+        # current point
+        # Red point
+        psy_results = psy_ta_rh(tdb, p_rh)
+        hr = round(float(psy_results["hr"]) * 1000, 1)
+        t_wb = round(float(psy_results["t_wb"]), 1)
+        t_dp = round(float(psy_results["t_dp"]), 1)
+        h = round(float(psy_results["h"]) / 1000, 1)
+
+        if units == UnitSystem.IP.value:
+            t_wb = round(float(units_converter(tmp=t_wb, from_units="si")[0]), 1)
+            t_dp = round(float(units_converter(tmp=t_dp, from_units="si")[0]), 1)
+            h = round(float(h / 2.326), 1)  # kJ/kg => btu/lb
+            tdb = p_tdb
+
+        traces.append(
+            go.Scatter(
+                x=[tdb],
+                y=[hr],
+                mode="markers",
+                marker=dict(
+                    color="red",
+                    size=6,
+                ),
                 showlegend=False,
                 hoverinfo="skip",
             )
         )
-        # category II
-        traces.append(
-            go.Scatter(
-                x=ii_lower_upper_tdb,
-                y=ii_lower_upper_hr,
-                mode="lines",
-                line=dict(color="rgba(0,0,0,0)"),
-                fill="toself",
-                fillcolor="rgba(28,128,28,0.3)",
-                showlegend=False,
-                hoverinfo="skip",
-            )
-        )
-        # category I
-        traces.append(
-            go.Scatter(
-                x=i_lower_upper_tdb,
-                y=i_lower_upper_hr,
-                mode="lines",
-                line=dict(color="rgba(0,0,0,0)"),
-                fill="toself",
-                fillcolor="rgba(28,128,28,0.4)",
-                showlegend=False,
-                hoverinfo="skip",
-            )
-        )
-
-    # current point
-    # Red point
-    psy_results = psy_ta_rh(tdb, p_rh)
-    hr = round(float(psy_results["hr"]) * 1000, 1)
-    t_wb = round(float(psy_results["t_wb"]), 1)
-    t_dp = round(float(psy_results["t_dp"]), 1)
-    h = round(float(psy_results["h"]) / 1000, 1)
-
-    if units == UnitSystem.IP.value:
-        t_wb = round(float(units_converter(tmp=t_wb, from_units="si")[0]), 1)
-        t_dp = round(float(units_converter(tmp=t_dp, from_units="si")[0]), 1)
-        h = round(float(h / 2.326), 1)  # kJ/kg => btu/lb
-        tdb = p_tdb
-
-    traces.append(
-        go.Scatter(
-            x=[tdb],
-            y=[hr],
-            mode="markers",
-            marker=dict(
-                color="red",
-                size=6,
-            ),
-            showlegend=False,
-            hoverinfo="skip",
-        )
-    )
 
     # lines
 
